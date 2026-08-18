@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>National Academic Examination Portal</title>
   
+  <!-- PWA Manifest & Theme Color -->
   <link rel="manifest" href="./manifest.json" />
   <meta name="theme-color" content="#2563eb" />
 
@@ -17,509 +18,7 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
-  <style>
-    :root {
-      --bg-primary: #0a0e17;
-      --bg-surface: #111927;
-      --bg-card: rgba(17, 25, 40, 0.85);
-      --border-color: rgba(255, 255, 255, 0.12);
-      --border-focus: #3b82f6;
-      --text-primary: #f8fafc;
-      --text-secondary: #94a3b8;
-      --accent-blue: #2563eb;
-      --accent-blue-hover: #1d4ed8;
-      --accent-purple: #7c3aed;
-      --accent-emerald: #10b981;
-      --accent-rose: #ef4444;
-      --card-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7);
-    }
-
-    [data-theme="light"] {
-      --bg-primary: #f8fafc;
-      --bg-surface: #ffffff;
-      --bg-card: rgba(255, 255, 255, 0.95);
-      --border-color: rgba(0, 0, 0, 0.1);
-      --border-focus: #2563eb;
-      --text-primary: #0f172a;
-      --text-secondary: #64748b;
-      --card-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.08);
-    }
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: 'Inter', sans-serif;
-      transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
-    }
-
-    body {
-      background-color: var(--bg-primary);
-      background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-      background-size: 24px 24px;
-      color: var(--text-primary);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      overflow-x: hidden;
-    }
-
-    [data-theme="light"] body {
-      background-image: radial-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px);
-    }
-
-    .glow {
-      position: fixed;
-      width: 500px;
-      height: 500px;
-      border-radius: 50%;
-      filter: blur(140px);
-      pointer-events: none;
-      z-index: 0;
-    }
-    .glow-1 { top: -150px; left: -100px; background: rgba(37, 99, 235, 0.18); }
-    .glow-2 { bottom: -100px; right: -100px; background: rgba(124, 58, 237, 0.15); }
-
-    /* 2D Butterfly Animation */
-    .butterfly-2d {
-      position: fixed;
-      width: 45px !important;
-      height: 45px !important;
-      max-width: 45px;
-      max-height: 45px;
-      pointer-events: none;
-      z-index: 1;
-    }
-
-    .bf-svg {
-      width: 45px !important;
-      height: 45px !important;
-      overflow: visible;
-      display: block;
-    }
-
-    .wing-2d {
-      fill: #00d2ff;
-      stroke: #0284c7;
-      stroke-width: 1.5;
-      filter: drop-shadow(0 0 10px #00d2ff) drop-shadow(0 0 20px #0284c7);
-      opacity: 0.85;
-      transform-origin: 50px 50px;
-    }
-
-    .bf-body {
-      fill: #38bdf8;
-      filter: drop-shadow(0 0 6px #38bdf8);
-    }
-
-    .wing-2d.left { animation: flap2DLeft 0.28s ease-in-out infinite alternate; }
-    .wing-2d.right { animation: flap2DRight 0.28s ease-in-out infinite alternate; }
-
-    @keyframes flap2DLeft {
-      0% { transform: scaleX(1); }
-      100% { transform: scaleX(0.2); }
-    }
-
-    @keyframes flap2DRight {
-      0% { transform: scaleX(1); }
-      100% { transform: scaleX(0.2); }
-    }
-
-    .butterfly-2d.b1 { animation: fly2DPath1 18s ease-in-out infinite; }
-    @keyframes fly2DPath1 {
-      0% { top: 85%; left: -60px; transform: rotate(35deg) scale(0.9); }
-      30% { top: 35%; left: 40%; transform: rotate(15deg) scale(1.05); }
-      60% { top: 60%; left: 75%; transform: rotate(45deg) scale(0.95); }
-      100% { top: 10%; left: 105%; transform: rotate(-10deg) scale(0.85); }
-    }
-
-    .butterfly-2d.b2 { animation: fly2DPath2 22s ease-in-out infinite 2.5s; }
-    @keyframes fly2DPath2 {
-      0% { top: 15%; left: 105%; transform: rotate(-130deg) scale(0.8); }
-      40% { top: 65%; left: 55%; transform: rotate(-100deg) scale(0.95); }
-      75% { top: 25%; left: 20%; transform: rotate(-140deg) scale(0.85); }
-      100% { top: 90%; left: -60px; transform: rotate(-160deg) scale(0.75); }
-    }
-
-    .navbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1.1rem 2.5rem;
-      background: var(--bg-card);
-      backdrop-filter: blur(16px);
-      border-bottom: 1px solid var(--border-color);
-      position: sticky;
-      top: 0;
-      z-index: 50;
-    }
-
-    .nav-brand {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-    }
-
-    .brand-icon {
-      width: 44px;
-      height: 44px;
-      background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
-      color: #fff;
-      display: grid;
-      place-items: center;
-      border-radius: 12px;
-      font-size: 1.25rem;
-      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
-    }
-
-    .nav-brand h1 {
-      font-size: 1.2rem;
-      font-weight: 700;
-      letter-spacing: -0.01em;
-    }
-    .nav-brand h1 span { color: #60a5fa; }
-    .subtitle { font-size: 0.75rem; color: var(--text-secondary); }
-
-    .nav-actions { display: flex; align-items: center; gap: 1rem; }
-    .btn-theme {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      color: var(--text-primary);
-      width: 40px;
-      height: 40px;
-      border-radius: 10px;
-      cursor: pointer;
-      display: grid;
-      place-items: center;
-      font-size: 1rem;
-    }
-    .btn-theme:hover { border-color: var(--border-focus); }
-
-    .role-badge {
-      display: flex;
-      align-items: center;
-      gap: 0.45rem;
-      font-size: 0.8rem;
-      font-weight: 600;
-      background: rgba(37, 99, 235, 0.15);
-      color: #60a5fa;
-      padding: 0.45rem 0.9rem;
-      border-radius: 999px;
-      border: 1px solid rgba(96, 165, 250, 0.25);
-    }
-
-    .container {
-      max-width: 960px;
-      width: 100%;
-      margin: 3.5rem auto;
-      padding: 0 1.25rem;
-      position: relative;
-      z-index: 10;
-      flex: 1;
-    }
-
-    .view-panel { display: none; }
-    .view-panel.active-panel { display: block; }
-
-    .card {
-      background: var(--bg-card);
-      backdrop-filter: blur(20px);
-      border: 1px solid var(--border-color);
-      border-radius: 20px;
-      padding: 2rem;
-      box-shadow: var(--card-shadow);
-      margin-bottom: 2rem;
-    }
-
-    .login-card {
-      max-width: 460px;
-      margin: 0 auto;
-      position: relative;
-    }
-
-    .card-header {
-      margin-bottom: 1.5rem;
-      text-align: center;
-    }
-    .card-header h3 {
-      font-size: 1.3rem;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.6rem;
-    }
-    .card-header p {
-      font-size: 0.85rem;
-      color: var(--text-secondary);
-      margin-top: 0.4rem;
-    }
-
-    .roster-toolbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-    }
-
-    .search-box {
-      position: relative;
-      flex: 1;
-      min-width: 240px;
-    }
-    .search-box i {
-      position: absolute;
-      left: 1rem;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--text-secondary);
-      font-size: 0.85rem;
-    }
-    .search-box input {
-      width: 100%;
-      padding: 0.75rem 1rem 0.75rem 2.5rem;
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: 10px;
-      color: var(--text-primary);
-      font-size: 0.88rem;
-      outline: none;
-    }
-    .search-box input:focus { border-color: var(--border-focus); }
-
-    .filter-pills {
-      display: flex;
-      gap: 0.4rem;
-      flex-wrap: wrap;
-    }
-    .pill {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      color: var(--text-secondary);
-      padding: 0.5rem 0.85rem;
-      border-radius: 8px;
-      font-size: 0.8rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.15s ease;
-    }
-    .pill:hover {
-      color: var(--text-primary);
-      border-color: var(--text-secondary);
-    }
-    .pill.active {
-      background: var(--accent-blue);
-      color: #ffffff;
-      border-color: var(--accent-blue);
-    }
-
-    .action-btns {
-      display: flex;
-      gap: 0.4rem;
-      justify-content: center;
-    }
-    .btn-icon {
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      border: 1px solid var(--border-color);
-      background: var(--bg-surface);
-      color: var(--text-secondary);
-      cursor: pointer;
-      display: grid;
-      place-items: center;
-      font-size: 0.85rem;
-      transition: all 0.15s ease;
-    }
-    .btn-icon.edit:hover {
-      background: rgba(37, 99, 235, 0.2);
-      color: #60a5fa;
-      border-color: var(--accent-blue);
-    }
-    .btn-icon.delete:hover {
-      background: rgba(239, 68, 68, 0.2);
-      color: #f87171;
-      border-color: var(--accent-rose);
-    }
-
-    .form-group { margin-bottom: 1.2rem; }
-    .form-group label {
-      display: block;
-      font-size: 0.82rem;
-      color: var(--text-secondary);
-      margin-bottom: 0.45rem;
-      font-weight: 500;
-    }
-    .form-group input {
-      width: 100%;
-      padding: 0.85rem 1rem;
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: 10px;
-      color: var(--text-primary);
-      font-size: 0.95rem;
-      outline: none;
-    }
-    .form-group input:focus {
-      border-color: var(--border-focus);
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
-    }
-
-    .form-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 1rem;
-      margin-bottom: 1.25rem;
-    }
-
-    .btn {
-      width: 100%;
-      padding: 0.9rem;
-      border-radius: 10px;
-      border: none;
-      font-size: 0.95rem;
-      font-weight: 600;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      transition: transform 0.1s ease, filter 0.15s ease;
-    }
-    .btn:active { transform: scale(0.98); }
-
-    .btn-primary {
-      background: linear-gradient(135deg, var(--accent-blue), #1d4ed8);
-      color: #ffffff;
-      box-shadow: 0 4px 16px rgba(37, 99, 235, 0.35);
-    }
-    .btn-primary:hover { filter: brightness(1.1); }
-
-    .btn-secondary {
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      color: var(--text-secondary);
-      width: auto;
-      padding: 0.75rem 1.25rem;
-    }
-    .btn-secondary:hover { color: var(--text-primary); border-color: var(--text-secondary); }
-
-    .btn-download {
-      background: linear-gradient(135deg, #10b981, #059669);
-      color: #ffffff;
-      padding: 0.75rem 1.25rem;
-      border-radius: 10px;
-      border: none;
-      font-weight: 600;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
-    }
-
-    .btn-excel {
-      background: rgba(16, 185, 129, 0.15);
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      color: #34d399;
-      padding: 0.6rem 1.1rem;
-      border-radius: 10px;
-      font-weight: 600;
-      font-size: 0.85rem;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      width: auto;
-      transition: all 0.15s ease;
-    }
-    .btn-excel:hover {
-      background: #10b981;
-      color: #ffffff;
-    }
-
-    .dashboard-actions {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1.5rem;
-      flex-wrap: wrap;
-      gap: 0.75rem;
-    }
-
-    .metrics-row {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 1.25rem;
-      margin-bottom: 1.75rem;
-    }
-
-    .metric-card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: 16px;
-      padding: 1.35rem;
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      box-shadow: var(--card-shadow);
-    }
-
-    .metric-icon {
-      width: 48px;
-      height: 48px;
-      border-radius: 12px;
-      display: grid;
-      place-items: center;
-      font-size: 1.3rem;
-    }
-    .metric-icon.blue { background: rgba(37, 99, 235, 0.18); color: #60a5fa; }
-    .metric-icon.purple { background: rgba(124, 58, 237, 0.18); color: #c084fc; }
-    .metric-icon.emerald { background: rgba(16, 185, 129, 0.18); color: #34d399; }
-
-    .metric-title { font-size: 0.78rem; color: var(--text-secondary); font-weight: 500; }
-    .metric-card h2 { font-size: 1.3rem; font-weight: 700; margin-top: 0.2rem; }
-
-    .charts-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 1.5rem;
-      margin-bottom: 1.75rem;
-    }
-    .chart-container { height: 280px; position: relative; }
-
-    .table-wrapper { overflow-x: auto; }
-    .styled-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.88rem; }
-    .styled-table th {
-      background: var(--bg-surface);
-      color: var(--text-secondary);
-      padding: 0.85rem 1rem;
-      border-bottom: 1px solid var(--border-color);
-      font-weight: 600;
-    }
-    .styled-table td {
-      padding: 0.85rem 1rem;
-      border-bottom: 1px solid var(--border-color);
-      color: var(--text-primary);
-    }
-
-    .report-card-pdf { display: none; background: #ffffff; color: #111827; padding: 2.5rem; border-radius: 4px; }
-    .pdf-header { display: flex; justify-content: space-between; align-items: center; }
-    .pdf-title { font-size: 1.3rem; font-weight: 800; color: #0f172a; }
-    .pdf-sub { font-size: 0.82rem; font-weight: 600; color: #475569; }
-    .pdf-badge { background: #fee2e2; color: #991b1b; font-weight: 800; font-size: 0.72rem; padding: 0.35rem 0.65rem; border: 1px solid #f87171; border-radius: 4px; }
-    .pdf-divider { margin: 1.2rem 0; border: 0; border-top: 2px solid #0f172a; }
-    .pdf-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; margin-bottom: 1.25rem; font-size: 0.88rem; }
-    .status-pass { color: #047857; font-weight: 800; }
-    .pdf-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; }
-    .pdf-table th { background: #f1f5f9; color: #1e293b; padding: 0.7rem; text-align: left; border: 1px solid #cbd5e1; font-size: 0.82rem; font-weight: 700; }
-    .pdf-table td { padding: 0.7rem; border: 1px solid #cbd5e1; font-size: 0.88rem; }
-    .pdf-total-row { background: #f8fafc; font-weight: 800; }
-    .pdf-footer { display: flex; justify-content: space-between; align-items: flex-end; font-size: 0.82rem; color: #334155; margin-top: 2.5rem; }
-    .pdf-seal { border: 2px solid #0f172a; padding: 0.5rem 0.85rem; font-weight: 700; font-size: 0.75rem; text-align: center; }
-  </style>
+  <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
 
@@ -642,4 +141,221 @@
         <div id="reportCardTemplate" class="report-card-pdf">
           <div class="pdf-header">
             <div>
-              <h2 class="pdf-title">STATE SECONDARY & HIGHER EDUCATION BOAR
+              <h2 class="pdf-title">STATE SECONDARY & HIGHER EDUCATION BOARD</h2>
+              <p class="pdf-sub">ANNUAL ACADEMIC EXAMINATION STATEMENT (2026-27)</p>
+            </div>
+            <div class="pdf-badge">GOVT. APPROVED</div>
+          </div>
+          <hr class="pdf-divider" />
+          
+          <div class="pdf-info-grid">
+            <p><strong>Candidate's Name:</strong> <span id="pdfName">-</span></p>
+            <p><strong>Roll Number:</strong> <span id="pdfRoll">-</span></p>
+            <p><strong>Course / Stream:</strong> General Academic Examination</p>
+            <p><strong>Result Status:</strong> <span class="status-pass" id="pdfStatus">PASSED</span></p>
+          </div>
+
+          <table class="pdf-table">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Subject Name</th>
+                <th>Theory (/80)</th>
+                <th>Internal (/20)</th>
+                <th>Total (/100)</th>
+                <th>Grading</th>
+              </tr>
+            </thead>
+            <tbody id="pdfTableBody"></tbody>
+            <tfoot>
+              <tr class="pdf-total-row">
+                <td colspan="4"><strong>Grand Aggregate Total (Out of 500)</strong></td>
+                <td id="pdfTotalScore"><strong>-</strong></td>
+                <td id="pdfFinalDivision"><strong>-</strong></td>
+              </tr>
+            </tfoot>
+          </table>
+
+          <div class="pdf-footer">
+            <div>
+              <p>Dated: August 18, 2026</p>
+              <p style="font-size: 0.75rem; color: #64748b;">System-generated authenticated digital document.</p>
+            </div>
+            <div class="pdf-seal">CONTROLLER OF EXAMINATIONS</div>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- FACULTY DESK SECTION -->
+    <section id="teacherSection" class="view-panel" style="display: none;">
+      
+      <div class="card login-card" id="teacherLoginCard">
+        <div class="card-header">
+          <h3><i class="fa-solid fa-lock"></i> Faculty Authorization</h3>
+          <p>Restricted Area: Enter Master Administrative Passcode</p>
+        </div>
+        <div class="form-group">
+          <label>Passcode (Demo: admin123)</label>
+          <input type="password" id="teacherPassInput" placeholder="Enter passcode" />
+        </div>
+        <button class="btn btn-primary" onclick="loginTeacher()">
+          <i class="fa-solid fa-unlock-keyhole"></i> Enter Faculty Desk
+        </button>
+        <button class="btn btn-secondary" style="width: 100%; margin-top: 0.75rem;" onclick="closeFacultyDesk()">
+          <i class="fa-solid fa-xmark"></i> Back to Student Portal
+        </button>
+      </div>
+
+      <div id="teacherDashboard" style="display: none;">
+        
+        <!-- Statistics Summary Cards -->
+        <div class="metrics-row">
+          <div class="metric-card">
+            <div class="metric-icon blue"><i class="fa-solid fa-users"></i></div>
+            <div>
+              <p class="metric-title">Total Candidates</p>
+              <h2 id="facultyTotalCount">0</h2>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon purple"><i class="fa-solid fa-chart-simple"></i></div>
+            <div>
+              <p class="metric-title">Class Average Score</p>
+              <h2 id="facultyClassAvg">0%</h2>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon emerald"><i class="fa-solid fa-trophy"></i></div>
+            <div>
+              <p class="metric-title">Highest Scorer</p>
+              <h2 id="facultyTopScore">-</h2>
+            </div>
+          </div>
+        </div>
+
+        <!-- Add / Edit Student Record Card -->
+        <div class="card" id="formCard">
+          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; text-align: left;">
+            <div>
+              <h3 id="formTitle"><i class="fa-solid fa-user-plus"></i> Register Student Marks Entry</h3>
+              <p id="formSub">Add a new student candidate record</p>
+            </div>
+            <button id="cancelEditBtn" class="btn btn-secondary" style="display: none; width: auto;" onclick="cancelEditMode()">
+              Cancel Edit
+            </button>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Candidate Name</label>
+              <input type="text" id="newStudentName" placeholder="Full name" />
+            </div>
+            <div class="form-group">
+              <label>Roll Number</label>
+              <input type="number" id="newStudentRoll" placeholder="Roll No." />
+            </div>
+            <div class="form-group">
+              <label>Security PIN</label>
+              <input type="password" id="newStudentPin" placeholder="4-digit PIN" />
+            </div>
+            <div class="form-group">
+              <label>General English (/100)</label>
+              <input type="number" id="newEnglish" placeholder="Marks" />
+            </div>
+            <div class="form-group">
+              <label>Regional / Language (/100)</label>
+              <input type="number" id="newLanguage" placeholder="Marks" />
+            </div>
+            <div class="form-group">
+              <label>Mathematics (/100)</label>
+              <input type="number" id="newMath" placeholder="Marks" />
+            </div>
+            <div class="form-group">
+              <label>Science / Computer (/100)</label>
+              <input type="number" id="newScience" placeholder="Marks" />
+            </div>
+            <div class="form-group">
+              <label>Social Studies / EVS (/100)</label>
+              <input type="number" id="newSocial" placeholder="Marks" />
+            </div>
+          </div>
+          <button class="btn btn-primary" id="submitRecordBtn" onclick="saveStudentRecord()">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Upload Mark Record
+          </button>
+        </div>
+
+        <!-- Class Roster with Export, Search, Filters & Actions -->
+        <div class="card">
+          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; text-align: left; flex-wrap: wrap; gap: 0.75rem;">
+            <h3><i class="fa-solid fa-table-list"></i> Examination Register</h3>
+            <button class="btn btn-excel" onclick="exportMarksToCSV()">
+              <i class="fa-solid fa-file-excel"></i> Export to Excel (CSV)
+            </button>
+          </div>
+          
+          <div class="roster-toolbar">
+            <div class="search-box">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="rosterSearchInput" placeholder="Search by name or roll number..." oninput="filterTeacherTable()" />
+            </div>
+            <div class="filter-pills">
+              <button class="pill active" onclick="setStatusFilter('all', this)">All</button>
+              <button class="pill" onclick="setStatusFilter('distinction', this)">Distinction (≥75%)</button>
+              <button class="pill" onclick="setStatusFilter('first', this)">1st Div (≥60%)</button>
+              <button class="pill" onclick="setStatusFilter('repeat', this)">Compartment (&lt;33%)</button>
+            </div>
+          </div>
+
+          <div class="table-wrapper">
+            <table class="styled-table">
+              <thead>
+                <tr>
+                  <th>Roll No</th>
+                  <th>Candidate Name</th>
+                  <th>English</th>
+                  <th>Language</th>
+                  <th>Maths</th>
+                  <th>Science</th>
+                  <th>Social</th>
+                  <th>Aggregate</th>
+                  <th>Division</th>
+                  <th style="text-align: center;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="teacherTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <button class="btn btn-secondary" onclick="closeFacultyDesk()">
+          <i class="fa-solid fa-arrow-left"></i> Exit Faculty Desk
+        </button>
+      </div>
+
+    </section>
+
+  </main>
+
+  <footer style="text-align: center; margin-top: 3rem; padding-bottom: 2rem; font-size: 0.75rem; color: var(--text-secondary);">
+    <p>© 2026 Academic Assessment Board. All rights reserved.</p>
+    <a href="javascript:void(0)" onclick="openFacultyDesk()" style="color: var(--text-secondary); text-decoration: none; opacity: 0.5; margin-top: 0.5rem; display: inline-block;">
+      <i class="fa-solid fa-key"></i> Staff Login
+    </a>
+  </footer>
+
+  <script src="./app.js"></script>
+
+  <!-- Service Worker Registration -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js")
+          .then(() => console.log("PWA Service Worker Registered Successfully!"))
+          .catch((err) => console.log("Service Worker Registration Failed:", err));
+      });
+    }
+  </script>
+</body>
+</html>
