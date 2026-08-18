@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EduTrack Multi-Portal Management</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- Top Navigation Bar -->
+  <nav class="navbar">
+    <div class="nav-brand">🎓 EduTrack Master Hub</div>
+    <div id="navAuthSection"></div>
+  </nav>
+
+  <!-- Live Notice / Maintenance Banner (Shown dynamically) -->
+  <div id="globalBanner" class="global-banner" style="display: none;"></div>
+
+  <main class="app-container">
+
+    <!-- ================= VIEW 1: AUTHENTICATION / 3-STATION SELECTOR ================= -->
+    <section id="authView" class="view-section">
+      <div class="auth-card-container">
+        
+        <!-- Student Login Card -->
+        <div class="card auth-card">
+          <div class="card-icon">👨‍🎓</div>
+          <h2>Student Portal</h2>
+          <p>View individual report cards, scores, and class feedback.</p>
+          <form id="studentLoginForm">
+            <div class="form-group">
+              <label for="studentLoginId">Roll ID</label>
+              <input type="text" id="studentLoginId" placeholder="e.g. 101" required />
+            </div>
+            <div class="form-group">
+              <label for="studentLoginPin">Access PIN</label>
+              <input type="password" id="studentLoginPin" placeholder="e.g. 1234" required />
+            </div>
+            <button type="submit" class="btn-primary w-full">Sign In as Student</button>
+          </form>
+        </div>
+
+        <!-- Teacher Login Card -->
+        <div class="card auth-card">
+          <div class="card-icon">👩‍🏫</div>
+          <h2>Teacher Station</h2>
+          <p>Add/edit marks, track analytics, and export class records.</p>
+          <form id="adminLoginForm">
+            <div class="form-group">
+              <label for="adminPassword">Teacher Passcode</label>
+              <input type="password" id="adminPassword" placeholder="Passcode (admin123)" required />
+            </div>
+            <button type="submit" class="btn-secondary w-full">Enter Teacher Station</button>
+          </form>
+        </div>
+
+        <!-- Principal / Owner Console Card -->
+        <div class="card auth-card border-accent">
+          <div class="card-icon">⚙️</div>
+          <h2>Principal & System Hub</h2>
+          <p>Post global announcements, toggle maintenance, and manage backups.</p>
+          <form id="ownerLoginForm">
+            <div class="form-group">
+              <label for="ownerPassword">Master Owner Passcode</label>
+              <input type="password" id="ownerPassword" placeholder="Passcode (owner123)" required />
+            </div>
+            <button type="submit" class="btn-owner w-full">Enter Master Hub</button>
+          </form>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================= VIEW 2: TEACHER STATION ================= -->
+    <section id="adminView" class="view-section" style="display: none;">
+      <div class="section-header">
+        <div>
+          <h2>Teacher Management Console</h2>
+          <p class="text-muted">Master control for class analytics and student records.</p>
+        </div>
+        <button id="exportCsvBtn" class="btn-outline">📥 Export Class CSV</button>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <span class="stat-label">Total Enrolled</span>
+          <h3 id="adminTotalStudents">0</h3>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Class Average</span>
+          <h3 id="adminClassAvg">0.0%</h3>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Pass Percentage</span>
+          <h3 id="adminPassRate">0%</h3>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Highest Score</span>
+          <h3 id="adminTopScorer">-</h3>
+        </div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="card">
+          <h3>Subject-Wise Performance</h3>
+          <div class="canvas-container">
+            <canvas id="adminSubjectChart"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Grade Distributions</h3>
+          <div class="canvas-container">
+            <canvas id="adminGradeChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="card form-card" id="teacherEntryCard">
+        <h3 id="formModeTitle">Register / Edit Student Record</h3>
+        <form id="studentEntryForm">
+          <input type="hidden" id="editStudentKey" value="-1" />
+          <div class="input-grid">
+            <div class="form-group">
+              <label for="rollId">Roll Number / ID</label>
+              <input type="text" id="rollId" placeholder="e.g. 104" required />
+            </div>
+            <div class="form-group">
+              <label for="studentPin">Secret PIN</label>
+              <input type="text" id="studentPin" placeholder="e.g. 1234" required />
+            </div>
+            <div class="form-group grid-span-2">
+              <label for="studentFullName">Full Name</label>
+              <input type="text" id="studentFullName" placeholder="e.g. David Miller" required />
+            </div>
+            <div class="form-group">
+              <label for="mathMarks">Math (0-100)</label>
+              <input type="number" id="mathMarks" min="0" max="100" required />
+            </div>
+            <div class="form-group">
+              <label for="scienceMarks">Science (0-100)</label>
+              <input type="number" id="scienceMarks" min="0" max="100" required />
+            </div>
+            <div class="form-group">
+              <label for="englishMarks">English (0-100)</label>
+              <input type="number" id="englishMarks" min="0" max="100" required />
+            </div>
+          </div>
+          <div class="form-actions">
+            <button type="submit" id="saveRecordBtn" class="btn-primary">Save Student</button>
+            <button type="button" id="cancelFormEditBtn" class="btn-muted" style="display: none;">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="table-tools">
+          <h3>Class Directory</h3>
+          <input type="text" id="adminTableSearch" placeholder="🔍 Search name or Roll ID..." />
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Roll ID</th>
+                <th>Name</th>
+                <th>PIN</th>
+                <th>Math</th>
+                <th>Science</th>
+                <th>English</th>
+                <th>Total</th>
+                <th>Average</th>
+                <th>Grade</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="adminTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= VIEW 3: STUDENT DASHBOARD ================= -->
+    <section id="studentView" class="view-section" style="display: none;">
+      <div class="section-header">
+        <div>
+          <h2>Welcome back, <span id="portalStudentName">Student</span>!</h2>
+          <p class="text-muted">Student ID: #<span id="portalRollId">-</span></p>
+        </div>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <span class="stat-label">Total Score</span>
+          <h3 id="portalTotalMarks">0 / 300</h3>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Aggregate Percentage</span>
+          <h3 id="portalAverage">0.0%</h3>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Assigned Grade</span>
+          <h3 id="portalGrade">-</h3>
+        </div>
+        <div class="stat-card">
+          <span class="stat-label">Result Status</span>
+          <h3 id="portalStatus">-</h3>
+        </div>
+      </div>
+
+      <div class="charts-grid">
+        <div class="card">
+          <h3>Your Subject Breakdown</h3>
+          <div class="canvas-container">
+            <canvas id="studentSubjectChart"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Academic Feedback & Breakdown</h3>
+          <div class="student-breakdown-box">
+            <div class="score-row">
+              <span>Mathematics:</span>
+              <strong id="cardMath">-</strong>
+            </div>
+            <div class="score-row">
+              <span>Science:</span>
+              <strong id="cardSci">-</strong>
+            </div>
+            <div class="score-row">
+              <span>English:</span>
+              <strong id="cardEng">-</strong>
+            </div>
+            <hr class="divider" />
+            <p id="studentFeedbackText" class="feedback-box"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= VIEW 4: PRINCIPAL & SYSTEM HUB ================= -->
+    <section id="ownerView" class="view-section" style="display: none;">
+      <div class="section-header">
+        <div>
+          <h2>Principal & System Management</h2>
+          <p class="text-muted">Broadcast live notices, control edit access, and manage data.</p>
+        </div>
+      </div>
+
+      <!-- Broadcast Center -->
+      <div class="card">
+        <h3>📢 Live Notice Broadcast Center</h3>
+        <p class="text-muted" style="margin-bottom: 1rem; font-size: 0.9rem;">
+          Publish notices (e.g., Exam dates, Fee deadlines, Holiday alerts) that appear across student and teacher portals.
+        </p>
+        <form id="announcementForm">
+          <div class="form-group">
+            <label for="noticeMessage">Notice Message</label>
+            <input type="text" id="noticeMessage" placeholder="e.g. Mid-term examination schedule will be published on Monday." required />
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn-owner">Publish Notice</button>
+            <button type="button" id="clearNoticeBtn" class="btn-outline">Clear Current Notice</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Maintenance & Safety Switch -->
+      <div class="card">
+        <h3>🛠️ Maintenance Mode & Data Protection</h3>
+        <p class="text-muted" style="margin-bottom: 1rem; font-size: 0.9rem;">
+          Enable Maintenance Mode when updating marks or curricula so teachers cannot accidentally edit or overwrite data simultaneously.
+        </p>
+        <div class="toggle-container">
+          <label class="switch">
+            <input type="checkbox" id="maintenanceToggle" />
+            <span class="slider round"></span>
+          </label>
+          <span id="maintenanceStatusLabel" style="font-weight: 600;">Maintenance Mode: Disabled (Normal Operation)</span>
+        </div>
+      </div>
+
+      <!-- Backup & Restore -->
+      <div class="card">
+        <h3>💾 System Backup & Data Reset</h3>
+        <p class="text-muted" style="margin-bottom: 1rem; font-size: 0.9rem;">Download full database snapshot or restore sample test data.</p>
+        <div class="form-actions">
+          <button id="backupJsonBtn" class="btn-outline">📥 Download JSON Backup</button>
+          <button id="resetDemoBtn" class="btn-sm-del" style="padding: 0.65rem 1.25rem;">⚠️ Reset to Default Demo Data</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
