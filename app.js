@@ -1,439 +1,488 @@
-// Seed Database
-const INITIAL_RECORDS = [
-  { rollId: '101', pin: '1234', name: 'Alice Cooper', math: 94, science: 89, english: 92, total: 275, average: 91.7, grade: 'A' },
-  { rollId: '102', pin: '1234', name: 'Bob Smith', math: 62, science: 55, english: 68, total: 185, average: 61.7, grade: 'C' },
-  { rollId: '103', pin: '1234', name: 'Charlie Ray', math: 82, science: 78, english: 85, total: 245, average: 81.7, grade: 'B' }
+const defaultStudents = [
+  { roll: 101, pin: "1234", name: "Aman Sharma", english: 82, language: 78, math: 92, science: 88, social: 84 },
+  { roll: 102, pin: "1234", name: "Pooja Verma", english: 68, language: 74, math: 60, science: 65, social: 70 },
+  { roll: 103, pin: "1234", name: "Rohan Patel", english: 94, language: 91, math: 98, science: 96, social: 92 }
 ];
 
-// Persistent State
-let studentDB = JSON.parse(localStorage.getItem('portalStudentDB')) || INITIAL_RECORDS;
-let systemSettings = JSON.parse(localStorage.getItem('portalSystemSettings')) || {
-  announcement: '📢 Welcome to the new academic term! Check your updated grades below.',
-  maintenanceMode: false
-};
+let students = JSON.parse(localStorage.getItem('academic_students')) || defaultStudents;
 
-const PASSCODES = {
-  TEACHER: 'admin123',
-  OWNER: 'owner123'
-};
-
-// Chart References
-let adminSubjectChart = null;
-let adminGradeChart = null;
-let studentChart = null;
-
-// DOM View Elements
-const authView = document.getElementById('authView');
-const adminView = document.getElementById('adminView');
-const studentView = document.getElementById('studentView');
-const ownerView = document.getElementById('ownerView');
-const navAuthSection = document.getElementById('navAuthSection');
-const globalBanner = document.getElementById('globalBanner');
-
-// Grade Calculation
-function calculateGrade(avg) {
-  if (avg >= 85) return 'A';
-  if (avg >= 70) return 'B';
-  if (avg >= 50) return 'C';
-  return 'F';
+function saveStudentsToStorage() {
+  localStorage.setItem('academic_students', JSON.stringify(students));
 }
 
-function saveDB() {
-  localStorage.setItem('portalStudentDB', JSON.stringify(studentDB));
+let studentChartInstance = null;
+let radarChartInstance = null;
+let currentActiveStudent = null;
+let activeStatusFilter = 'all';
+let editingRollNumber = null;
+
+const subjectCatalog = [
+  { code: "101", key: "english", name: "General English" },
+  { code: "102", key: "language", name: "Language (Hindi / Punjabi)" },
+  { code: "103", key: "math", name: "Mathematics" },
+  { code: "104", key: "science", name: "Science & Technology" },
+  { code: "105", key: "social", name: "Social Science / EVS" }
+];
+
+// Theme Switcher
+const themeToggleBtn = document.getElementById('themeToggle');
+themeToggleBtn.addEventListener('click', () => {
+  const currentTheme = document.documentElement.getAttribute('data-theme');
+  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', newTheme);
+  themeToggleBtn.innerHTML = newTheme === 'dark' ? '<i class="fa-solid fa-moon"></i>' : '<i class="fa-solid fa-sun"></i>';
+  if (currentActiveStudent) renderCharts(currentActiveStudent);
+});
+
+// Hidden Faculty Controls
+function openFacultyDesk() {
+  document.getElementById('studentSection').style.display = 'none';
+  document.getElementById('teacherSection').style.display = 'block';
+  document.getElementById('teacherLoginCard').style.display = 'block';
+  document.getElementById('teacherDashboard').style.display = 'none';
 }
 
-function saveSettings() {
-  localStorage.setItem('portalSystemSettings', JSON.stringify(systemSettings));
-  updateBanner();
+function closeFacultyDesk() {
+  cancelEditMode();
+  document.getElementById('teacherSection').style.display = 'none';
+  document.getElementById('studentSection').style.display = 'block';
 }
 
-function updateBanner() {
-  if (systemSettings.maintenanceMode) {
-    globalBanner.style.display = 'block';
-    globalBanner.style.backgroundColor = '#fee2e2';
-    globalBanner.style.color = '#991b1b';
-    globalBanner.style.borderColor = '#fca5a5';
-    globalBanner.textContent = '⚠️ System Maintenance Active: Teacher entry and editing is currently in read-only mode.';
-  } else if (systemSettings.announcement && systemSettings.announcement.trim() !== '') {
-    globalBanner.style.display = 'block';
-    globalBanner.style.backgroundColor = '#fef3c7';
-    globalBanner.style.color = '#92400e';
-    globalBanner.style.borderColor = '#fcd34d';
-    globalBanner.textContent = systemSettings.announcement;
-  } else {
-    globalBanner.style.display = 'none';
-  }
-}
-
-// Navigation & Routing
-function showView(viewName, userData = null) {
-  authView.style.display = 'none';
-  adminView.style.display = 'none';
-  studentView.style.display = 'none';
-  ownerView.style.display = 'none';
-
-  if (viewName === 'AUTH') {
-    authView.style.display = 'block';
-    navAuthSection.innerHTML = `<span class="text-muted" style="font-size: 0.85rem;">Select portal to continue</span>`;
-  } else if (viewName === 'ADMIN') {
-    adminView.style.display = 'flex';
-    navAuthSection.innerHTML = `
-      <div class="user-badge">
-        <span>👩‍🏫 <strong>Teacher Station</strong></span>
-        <button class="btn-outline" onclick="logout()">Logout</button>
-      </div>
-    `;
-    renderAdminDashboard();
-  } else if (viewName === 'STUDENT') {
-    studentView.style.display = 'flex';
-    navAuthSection.innerHTML = `
-      <div class="user-badge">
-        <span>👨‍🎓 ${userData.name}</span>
-        <button class="btn-outline" onclick="logout()">Logout</button>
-      </div>
-    `;
-    renderStudentPortal(userData);
-  } else if (viewName === 'OWNER') {
-    ownerView.style.display = 'flex';
-    navAuthSection.innerHTML = `
-      <div class="user-badge">
-        <span>⚙️ <strong>Principal Hub</strong></span>
-        <button class="btn-outline" onclick="logout()">Logout</button>
-      </div>
-    `;
-    renderOwnerHub();
-  }
-}
-
-window.logout = function() {
-  showView('AUTH');
-};
-
-// ================= AUTH HANDLERS =================
-document.getElementById('adminLoginForm').addEventListener('submit', (e) => {
-  e.preventDefault();
-  const pwd = document.getElementById('adminPassword').value;
-  if (pwd === PASSCODES.TEACHER) {
-    document.getElementById('adminPassword').value = '';
-    showView('ADMIN');
-  } else {
-    alert('Incorrect Teacher Passcode. Default: admin123');
+window.addEventListener('DOMContentLoaded', () => {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('admin') === 'true') {
+    openFacultyDesk();
   }
 });
 
-document.getElementById('ownerLoginForm').addEventListener('submit', (e) => {
-  e.preventDefault();
-  const pwd = document.getElementById('ownerPassword').value;
-  if (pwd === PASSCODES.OWNER) {
-    document.getElementById('ownerPassword').value = '';
-    showView('OWNER');
-  } else {
-    alert('Incorrect Master Passcode. Default: owner123');
-  }
-});
+// Student Login & Calculation
+function loginStudent() {
+  const roll = parseInt(document.getElementById('studentRollInput').value);
+  const pin = document.getElementById('studentPinInput').value;
 
-document.getElementById('studentLoginForm').addEventListener('submit', (e) => {
-  e.preventDefault();
-  const roll = document.getElementById('studentLoginId').value.trim();
-  const pin = document.getElementById('studentLoginPin').value.trim();
+  const found = students.find(s => s.roll === roll && s.pin === pin);
 
-  const student = studentDB.find(s => s.rollId === roll && s.pin === pin);
-  if (student) {
-    document.getElementById('studentLoginId').value = '';
-    document.getElementById('studentLoginPin').value = '';
-    showView('STUDENT', student);
-  } else {
-    alert('Invalid Roll ID or PIN.');
-  }
-});
-
-// ================= TEACHER STATION =================
-function renderAdminDashboard() {
-  const total = studentDB.length;
-  document.getElementById('adminTotalStudents').textContent = total;
-
-  if (total === 0) {
-    document.getElementById('adminClassAvg').textContent = '0.0%';
-    document.getElementById('adminPassRate').textContent = '0%';
-    document.getElementById('adminTopScorer').textContent = '-';
-  } else {
-    const avgSum = studentDB.reduce((sum, s) => sum + s.average, 0);
-    document.getElementById('adminClassAvg').textContent = `${(avgSum / total).toFixed(1)}%`;
-
-    const passes = studentDB.filter(s => s.average >= 50).length;
-    document.getElementById('adminPassRate').textContent = `${((passes / total) * 100).toFixed(0)}%`;
-
-    const top = studentDB.reduce((max, s) => (s.total > max.total ? s : max), studentDB[0]);
-    document.getElementById('adminTopScorer').textContent = `${top.name} (${top.total}/300)`;
-  }
-
-  // Handle Maintenance Mode Lock
-  const formInputs = document.querySelectorAll('#studentEntryForm input, #studentEntryForm button');
-  formInputs.forEach(el => el.disabled = systemSettings.maintenanceMode);
-
-  renderAdminCharts();
-  renderAdminTable();
-}
-
-function renderAdminCharts() {
-  const ctxSub = document.getElementById('adminSubjectChart').getContext('2d');
-  const ctxGrd = document.getElementById('adminGradeChart').getContext('2d');
-  const total = studentDB.length || 1;
-
-  const mAvg = (studentDB.reduce((acc, s) => acc + s.math, 0) / total).toFixed(1);
-  const sAvg = (studentDB.reduce((acc, s) => acc + s.science, 0) / total).toFixed(1);
-  const eAvg = (studentDB.reduce((acc, s) => acc + s.english, 0) / total).toFixed(1);
-
-  const gradeCount = { A: 0, B: 0, C: 0, F: 0 };
-  studentDB.forEach(s => gradeCount[s.grade]++);
-
-  if (adminSubjectChart) adminSubjectChart.destroy();
-  if (adminGradeChart) adminGradeChart.destroy();
-
-  adminSubjectChart = new Chart(ctxSub, {
-    type: 'bar',
-    data: {
-      labels: ['Math', 'Science', 'English'],
-      datasets: [{
-        label: 'Average Score',
-        data: [mAvg, sAvg, eAvg],
-        backgroundColor: ['#6366f1', '#38bdf8', '#818cf8'],
-        borderRadius: 6
-      }]
-    },
-    options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100 } } }
-  });
-
-  adminGradeChart = new Chart(ctxGrd, {
-    type: 'doughnut',
-    data: {
-      labels: ['A', 'B', 'C', 'F'],
-      datasets: [{
-        data: [gradeCount.A, gradeCount.B, gradeCount.C, gradeCount.F],
-        backgroundColor: ['#22c55e', '#3b82f6', '#eab308', '#ef4444']
-      }]
-    },
-    options: { responsive: true, maintainAspectRatio: false }
-  });
-}
-
-function renderAdminTable() {
-  const tbody = document.getElementById('adminTableBody');
-  tbody.innerHTML = '';
-
-  const q = document.getElementById('adminTableSearch').value.toLowerCase();
-  const list = studentDB.filter(s => s.name.toLowerCase().includes(q) || s.rollId.includes(q));
-
-  if (list.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding: 2rem; color: #94a3b8;">No student records found.</td></tr>`;
+  if (!found) {
+    alert('Invalid Roll Number or Security PIN!');
     return;
   }
 
-  list.forEach((s) => {
-    const idx = studentDB.indexOf(s);
+  currentActiveStudent = found;
+
+  const total = found.english + found.language + found.math + found.science + found.social;
+  const percentage = (total / 5).toFixed(1);
+
+  let division = '';
+  if (percentage >= 75) division = 'First Division with Distinction';
+  else if (percentage >= 60) division = 'First Division';
+  else if (percentage >= 50) division = 'Second Division';
+  else if (percentage >= 33) division = 'Third Division (Pass)';
+  else division = 'Essential Repeat / Compartment';
+
+  if (percentage >= 75) {
+    confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 } });
+  }
+
+  document.getElementById('dispStudentName').innerText = found.name;
+  document.getElementById('dispStudentTotal').innerText = `${total} / 500 (${percentage}%)`;
+  document.getElementById('dispStudentGrade').innerText = division;
+
+  document.getElementById('pdfName').innerText = found.name;
+  document.getElementById('pdfRoll').innerText = `#${found.roll}`;
+  document.getElementById('pdfTotalScore').innerText = `${total}/500 (${percentage}%)`;
+  document.getElementById('pdfFinalDivision').innerText = division;
+  document.getElementById('pdfStatus').innerText = percentage >= 33 ? 'PASSED' : 'COMPARTMENT';
+
+  const pdfTbody = document.getElementById('pdfTableBody');
+  pdfTbody.innerHTML = '';
+
+  subjectCatalog.forEach(sub => {
+    const totalMarks = found[sub.key];
+    const theory = Math.round(totalMarks * 0.8);
+    const internal = totalMarks - theory;
+    const grade = totalMarks >= 90 ? 'A+' : totalMarks >= 80 ? 'A' : totalMarks >= 70 ? 'B+' : totalMarks >= 60 ? 'B' : totalMarks >= 33 ? 'C' : 'D';
+
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><strong>#${s.rollId}</strong></td>
+      <td>${sub.code}</td>
+      <td><strong>${sub.name}</strong></td>
+      <td>${theory}</td>
+      <td>${internal}</td>
+      <td>${totalMarks}</td>
+      <td><strong>${grade}</strong></td>
+    `;
+    pdfTbody.appendChild(tr);
+  });
+
+  document.getElementById('studentLoginCard').style.display = 'none';
+  document.getElementById('studentDashboard').style.display = 'block';
+
+  renderCharts(found);
+}
+
+function logoutStudent() {
+  currentActiveStudent = null;
+  document.getElementById('studentLoginCard').style.display = 'block';
+  document.getElementById('studentDashboard').style.display = 'none';
+  document.getElementById('studentRollInput').value = '';
+  document.getElementById('studentPinInput').value = '';
+}
+
+function downloadReportCardPDF() {
+  const element = document.getElementById('reportCardTemplate');
+  element.style.display = 'block';
+
+  const opt = {
+    margin: 0.4,
+    filename: `${currentActiveStudent.name}_Official_Marksheet.pdf`,
+    image: { type: 'jpeg', quality: 0.98 },
+    html2canvas: { scale: 2 },
+    jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+  };
+
+  html2pdf().set(opt).from(element).save().then(() => {
+    element.style.display = 'none';
+  });
+}
+
+function renderCharts(student) {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  const textColor = isDark ? '#9ca3af' : '#4b5563';
+  const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+
+  const avgEnglish = students.reduce((acc, s) => acc + s.english, 0) / students.length;
+  const avgLang = students.reduce((acc, s) => acc + s.language, 0) / students.length;
+  const avgMath = students.reduce((acc, s) => acc + s.math, 0) / students.length;
+  const avgScience = students.reduce((acc, s) => acc + s.science, 0) / students.length;
+  const avgSocial = students.reduce((acc, s) => acc + s.social, 0) / students.length;
+
+  if (studentChartInstance) studentChartInstance.destroy();
+  const ctxBar = document.getElementById('studentChart').getContext('2d');
+  studentChartInstance = new Chart(ctxBar, {
+    type: 'bar',
+    data: {
+      labels: ['English', 'Language', 'Maths', 'Science', 'Social/EVS'],
+      datasets: [{
+        label: 'Marks Scored',
+        data: [student.english, student.language, student.math, student.science, student.social],
+        backgroundColor: [
+          'rgba(59, 130, 246, 0.85)',
+          'rgba(139, 92, 246, 0.85)',
+          'rgba(16, 185, 129, 0.85)',
+          'rgba(245, 158, 11, 0.85)',
+          'rgba(239, 68, 68, 0.85)'
+        ],
+        borderRadius: 8
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, max: 100, ticks: { color: textColor }, grid: { color: gridColor } },
+        x: { ticks: { color: textColor }, grid: { display: false } }
+      }
+    }
+  });
+
+  if (radarChartInstance) radarChartInstance.destroy();
+  const ctxRadar = document.getElementById('studentRadarChart').getContext('2d');
+  radarChartInstance = new Chart(ctxRadar, {
+    type: 'radar',
+    data: {
+      labels: ['English', 'Language', 'Maths', 'Science', 'Social/EVS'],
+      datasets: [
+        {
+          label: student.name,
+          data: [student.english, student.language, student.math, student.science, student.social],
+          backgroundColor: 'rgba(59, 130, 246, 0.25)',
+          borderColor: '#3b82f6',
+          pointBackgroundColor: '#3b82f6'
+        },
+        {
+          label: 'Class Average',
+          data: [avgEnglish.toFixed(0), avgLang.toFixed(0), avgMath.toFixed(0), avgScience.toFixed(0), avgSocial.toFixed(0)],
+          backgroundColor: 'rgba(156, 163, 175, 0.15)',
+          borderColor: '#9ca3af',
+          borderDash: [4, 4],
+          pointBackgroundColor: '#9ca3af'
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        r: {
+          suggestedMin: 0,
+          suggestedMax: 100,
+          ticks: { backdropColor: 'transparent', color: textColor },
+          grid: { color: gridColor },
+          pointLabels: { color: textColor, font: { size: 11 } }
+        }
+      },
+      plugins: { legend: { labels: { color: textColor } } }
+    }
+  });
+}
+
+// Faculty Desk & Analytics
+function loginTeacher() {
+  const pass = document.getElementById('teacherPassInput').value;
+  if (pass !== 'admin123') {
+    alert('Invalid Administrative Passcode!');
+    return;
+  }
+  document.getElementById('teacherLoginCard').style.display = 'none';
+  document.getElementById('teacherDashboard').style.display = 'block';
+  updateFacultyStatistics();
+  renderTeacherTable();
+}
+
+function updateFacultyStatistics() {
+  if (students.length === 0) {
+    document.getElementById('facultyTotalCount').innerText = '0';
+    document.getElementById('facultyClassAvg').innerText = '0%';
+    document.getElementById('facultyTopScore').innerText = 'N/A';
+    return;
+  }
+
+  document.getElementById('facultyTotalCount').innerText = students.length;
+
+  const totalMarksEarned = students.reduce((acc, s) => acc + (s.english + s.language + s.math + s.science + s.social), 0);
+  const classAvg = (totalMarksEarned / (students.length * 5)).toFixed(1);
+  document.getElementById('facultyClassAvg').innerText = `${classAvg}%`;
+
+  let topStudent = students[0];
+  let maxScore = -1;
+  students.forEach(s => {
+    const total = s.english + s.language + s.math + s.science + s.social;
+    if (total > maxScore) {
+      maxScore = total;
+      topStudent = s;
+    }
+  });
+  const topPercentage = (maxScore / 5).toFixed(1);
+  document.getElementById('facultyTopScore').innerText = `${topStudent.name} (${topPercentage}%)`;
+}
+
+function setStatusFilter(filterType, buttonEl) {
+  activeStatusFilter = filterType;
+  document.querySelectorAll('.filter-pills .pill').forEach(btn => btn.classList.remove('active'));
+  buttonEl.classList.add('active');
+  renderTeacherTable();
+}
+
+function filterTeacherTable() {
+  renderTeacherTable();
+}
+
+function renderTeacherTable() {
+  const tbody = document.getElementById('teacherTableBody');
+  tbody.innerHTML = '';
+
+  const searchQuery = document.getElementById('rosterSearchInput') ? document.getElementById('rosterSearchInput').value.toLowerCase().trim() : '';
+
+  const filteredStudents = students.filter(s => {
+    const total = s.english + s.language + s.math + s.science + s.social;
+    const avg = total / 5;
+
+    const matchesSearch = s.name.toLowerCase().includes(searchQuery) || s.roll.toString().includes(searchQuery);
+
+    let matchesStatus = true;
+    if (activeStatusFilter === 'distinction') {
+      matchesStatus = avg >= 75;
+    } else if (activeStatusFilter === 'first') {
+      matchesStatus = avg >= 60 && avg < 75;
+    } else if (activeStatusFilter === 'repeat') {
+      matchesStatus = avg < 33;
+    }
+
+    return matchesSearch && matchesStatus;
+  });
+
+  if (filteredStudents.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="10" style="text-align: center; color: var(--text-secondary); padding: 1.5rem;">No matching candidate records found.</td></tr>`;
+    return;
+  }
+
+  filteredStudents.forEach(s => {
+    const total = s.english + s.language + s.math + s.science + s.social;
+    const avg = (total / 5).toFixed(1);
+    const div = avg >= 75 ? 'Distinction' : avg >= 60 ? '1st Div' : avg >= 50 ? '2nd Div' : avg >= 33 ? '3rd Div' : 'Compartment';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>#${s.roll}</strong></td>
       <td>${s.name}</td>
-      <td><code>${s.pin}</code></td>
+      <td>${s.english}</td>
+      <td>${s.language}</td>
       <td>${s.math}</td>
       <td>${s.science}</td>
-      <td>${s.english}</td>
-      <td><strong>${s.total}</strong></td>
-      <td>${s.average.toFixed(1)}%</td>
-      <td><span class="badge grade-${s.grade}">${s.grade}</span></td>
+      <td>${s.social}</td>
+      <td><strong>${total}/500</strong> (${avg}%)</td>
+      <td><span style="color: ${avg >= 33 ? 'var(--accent-emerald)' : 'var(--accent-rose)'}; font-weight: 600;">${div}</span></td>
       <td>
-        <button class="btn-sm-edit" onclick="startEdit(${idx})" ${systemSettings.maintenanceMode ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''}>Edit</button>
-        <button class="btn-sm-del" onclick="deleteStudent(${idx})" ${systemSettings.maintenanceMode ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''}>Del</button>
+        <div class="action-btns">
+          <button class="btn-icon edit" title="Edit Student Record" onclick="startEditStudent(${s.roll})">
+            <i class="fa-solid fa-pen-to-square"></i>
+          </button>
+          <button class="btn-icon delete" title="Delete Student Record" onclick="deleteStudentRecord(${s.roll})">
+            <i class="fa-solid fa-trash-can"></i>
+          </button>
+        </div>
       </td>
     `;
     tbody.appendChild(tr);
   });
 }
 
-document.getElementById('studentEntryForm').addEventListener('submit', (e) => {
-  e.preventDefault();
-  if (systemSettings.maintenanceMode) {
-    alert('System is under maintenance. Edits are disabled.');
-    return;
-  }
+// Edit & Delete Operations
+function startEditStudent(roll) {
+  const student = students.find(s => s.roll === roll);
+  if (!student) return;
 
-  const rollId = document.getElementById('rollId').value.trim();
-  const pin = document.getElementById('studentPin').value.trim();
-  const name = document.getElementById('studentFullName').value.trim();
-  const math = Number(document.getElementById('mathMarks').value);
-  const science = Number(document.getElementById('scienceMarks').value);
-  const english = Number(document.getElementById('englishMarks').value);
-  const editIndex = Number(document.getElementById('editStudentKey').value);
+  editingRollNumber = roll;
 
-  if (editIndex === -1 && studentDB.some(s => s.rollId === rollId)) {
-    alert(`Roll ID #${rollId} already exists!`);
-    return;
-  }
+  document.getElementById('newStudentName').value = student.name;
+  document.getElementById('newStudentRoll').value = student.roll;
+  document.getElementById('newStudentRoll').disabled = true;
+  document.getElementById('newStudentPin').value = student.pin;
+  document.getElementById('newEnglish').value = student.english;
+  document.getElementById('newLanguage').value = student.language;
+  document.getElementById('newMath').value = student.math;
+  document.getElementById('newScience').value = student.science;
+  document.getElementById('newSocial').value = student.social;
 
-  const total = math + science + english;
-  const average = total / 3;
-  const grade = calculateGrade(average);
-  const record = { rollId, pin, name, math, science, english, total, average, grade };
+  document.getElementById('formTitle').innerHTML = `<i class="fa-solid fa-pen-to-square"></i> Update Marksheet (#${roll})`;
+  document.getElementById('formSub').innerText = `Modifying scores for ${student.name}`;
+  document.getElementById('submitRecordBtn').innerHTML = `<i class="fa-solid fa-check"></i> Save Updated Marks`;
+  document.getElementById('cancelEditBtn').style.display = 'inline-flex';
 
-  if (editIndex === -1) {
-    studentDB.push(record);
-  } else {
-    studentDB[editIndex] = record;
-    resetForm();
-  }
-
-  saveDB();
-  document.getElementById('studentEntryForm').reset();
-  renderAdminDashboard();
-});
-
-window.startEdit = function(index) {
-  const s = studentDB[index];
-  document.getElementById('rollId').value = s.rollId;
-  document.getElementById('studentPin').value = s.pin;
-  document.getElementById('studentFullName').value = s.name;
-  document.getElementById('mathMarks').value = s.math;
-  document.getElementById('scienceMarks').value = s.science;
-  document.getElementById('englishMarks').value = s.english;
-
-  document.getElementById('editStudentKey').value = index;
-  document.getElementById('formModeTitle').textContent = `Editing: ${s.name} (#${s.rollId})`;
-  document.getElementById('saveRecordBtn').textContent = 'Update Student';
-  document.getElementById('cancelFormEditBtn').style.display = 'inline-block';
-};
-
-function resetForm() {
-  document.getElementById('editStudentKey').value = '-1';
-  document.getElementById('formModeTitle').textContent = 'Register / Edit Student Record';
-  document.getElementById('saveRecordBtn').textContent = 'Save Student';
-  document.getElementById('cancelFormEditBtn').style.display = 'none';
-  document.getElementById('studentEntryForm').reset();
+  document.getElementById('formCard').scrollIntoView({ behavior: 'smooth' });
 }
 
-document.getElementById('cancelFormEditBtn').addEventListener('click', resetForm);
+function cancelEditMode() {
+  editingRollNumber = null;
 
-window.deleteStudent = function(index) {
-  if (confirm(`Delete record for ${studentDB[index].name}?`)) {
-    studentDB.splice(index, 1);
-    saveDB();
-    renderAdminDashboard();
+  document.getElementById('newStudentName').value = '';
+  document.getElementById('newStudentRoll').value = '';
+  document.getElementById('newStudentRoll').disabled = false;
+  document.getElementById('newStudentPin').value = '';
+  document.getElementById('newEnglish').value = '';
+  document.getElementById('newLanguage').value = '';
+  document.getElementById('newMath').value = '';
+  document.getElementById('newScience').value = '';
+  document.getElementById('newSocial').value = '';
+
+  document.getElementById('formTitle').innerHTML = `<i class="fa-solid fa-user-plus"></i> Register Student Marks Entry`;
+  document.getElementById('formSub').innerText = `Add a new student candidate record`;
+  document.getElementById('submitRecordBtn').innerHTML = `<i class="fa-solid fa-cloud-arrow-up"></i> Upload Mark Record`;
+  document.getElementById('cancelEditBtn').style.display = 'none';
+}
+
+function deleteStudentRecord(roll) {
+  const student = students.find(s => s.roll === roll);
+  if (!student) return;
+
+  const confirmDelete = confirm(`Are you sure you want to delete candidate #${roll} (${student.name})? This action cannot be undone.`);
+  if (!confirmDelete) return;
+
+  students = students.filter(s => s.roll !== roll);
+  saveStudentsToStorage();
+  updateFacultyStatistics();
+  renderTeacherTable();
+
+  if (editingRollNumber === roll) {
+    cancelEditMode();
   }
-};
 
-document.getElementById('adminTableSearch').addEventListener('input', renderAdminTable);
+  alert(`Candidate #${roll} deleted successfully.`);
+}
 
-document.getElementById('exportCsvBtn').addEventListener('click', () => {
-  if (studentDB.length === 0) return alert('No records to export.');
-  let csv = 'data:text/csv;charset=utf-8,Roll ID,Name,PIN,Math,Science,English,Total,Average,Grade\n';
-  studentDB.forEach(s => {
-    csv += `${s.rollId},"${s.name}",${s.pin},${s.math},${s.science},${s.english},${s.total},${s.average.toFixed(1)},${s.grade}\n`;
+function saveStudentRecord() {
+  const nameInput = document.getElementById('newStudentName');
+  const rollInput = document.getElementById('newStudentRoll');
+  const pinInput = document.getElementById('newStudentPin');
+  const engInput = document.getElementById('newEnglish');
+  const langInput = document.getElementById('newLanguage');
+  const mathInput = document.getElementById('newMath');
+  const sciInput = document.getElementById('newScience');
+  const socInput = document.getElementById('newSocial');
+
+  const name = nameInput.value.trim();
+  const roll = parseInt(rollInput.value.trim());
+  const pin = pinInput.value.trim();
+  const english = parseInt(engInput.value.trim());
+  const language = parseInt(langInput.value.trim());
+  const math = parseInt(mathInput.value.trim());
+  const science = parseInt(sciInput.value.trim());
+  const social = parseInt(socInput.value.trim());
+
+  if (!name || isNaN(roll) || !pin || isNaN(english) || isNaN(language) || isNaN(math) || isNaN(science) || isNaN(social)) {
+    alert('Please fill out all fields before submitting!');
+    return;
+  }
+
+  const marks = [english, language, math, science, social];
+  if (marks.some(m => m < 0 || m > 100)) {
+    alert('Subject marks must be between 0 and 100!');
+    return;
+  }
+
+  if (editingRollNumber !== null) {
+    const index = students.findIndex(s => s.roll === editingRollNumber);
+    if (index !== -1) {
+      students[index] = { roll, pin, name, english, language, math, science, social };
+      saveStudentsToStorage();
+      updateFacultyStatistics();
+      renderTeacherTable();
+      alert(`Record for ${name} (#${roll}) updated successfully!`);
+      cancelEditMode();
+    }
+  } else {
+    const duplicate = students.find(s => s.roll === roll);
+    if (duplicate) {
+      alert(`Roll number #${roll} is already registered under ${duplicate.name}! Use a different roll number.`);
+      return;
+    }
+
+    students.push({ roll, pin, name, english, language, math, science, social });
+    saveStudentsToStorage();
+    updateFacultyStatistics();
+    renderTeacherTable();
+    alert(`Candidate ${name} (#${roll}) registered successfully!`);
+
+    cancelEditMode();
+  }
+}
+
+// Export Marks to CSV / Excel
+function exportMarksToCSV() {
+  if (students.length === 0) {
+    alert('No records available to export!');
+    return;
+  }
+
+  let csvContent = 'data:text/csv;charset=utf-8,';
+  csvContent += 'Roll Number,Candidate Name,General English,Language,Mathematics,Science,Social Studies,Total Marks,Max Marks,Percentage,Division\r\n';
+
+  students.forEach(s => {
+    const total = s.english + s.language + s.math + s.science + s.social;
+    const percentage = (total / 5).toFixed(1);
+    const division = percentage >= 75 ? 'Distinction' : percentage >= 60 ? '1st Division' : percentage >= 50 ? '2nd Division' : percentage >= 33 ? '3rd Division' : 'Compartment';
+
+    // Wrap name in quotes to prevent CSV comma issues
+    const safeName = `"${s.name}"`;
+    const row = `${s.roll},${safeName},${s.english},${s.language},${s.math},${s.science},${s.social},${total},500,${percentage}%,${division}`;
+    csvContent += row + '\r\n';
   });
+
+  const encodedUri = encodeURI(csvContent);
   const link = document.createElement('a');
-  link.setAttribute('href', encodeURI(csv));
-  link.setAttribute('download', 'class_records.csv');
+  link.setAttribute('href', encodedUri);
+  link.setAttribute('download', `Annual_Examination_Marks_Register_2026.csv`);
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
-});
-
-// ================= STUDENT PORTAL =================
-function renderStudentPortal(student) {
-  document.getElementById('portalStudentName').textContent = student.name;
-  document.getElementById('portalRollId').textContent = student.rollId;
-  document.getElementById('portalTotalMarks').textContent = `${student.total} / 300`;
-  document.getElementById('portalAverage').textContent = `${student.average.toFixed(1)}%`;
-  document.getElementById('portalGrade').textContent = student.grade;
-
-  const isPass = student.average >= 50;
-  const statusEl = document.getElementById('portalStatus');
-  statusEl.textContent = isPass ? 'PASSED' : 'NEEDS IMPROVEMENT';
-  statusEl.style.color = isPass ? '#16a34a' : '#dc2626';
-
-  document.getElementById('cardMath').textContent = `${student.math} / 100`;
-  document.getElementById('cardSci').textContent = `${student.science} / 100`;
-  document.getElementById('cardEng').textContent = `${student.english} / 100`;
-
-  let feedback = '';
-  if (student.average >= 85) feedback = `🌟 Outstanding work! Maintaining Grade A performance across coursework.`;
-  else if (student.average >= 70) feedback = `👍 Good performance with Grade B. Target your lowest scoring subject to climb into Grade A.`;
-  else if (student.average >= 50) feedback = `⚠️ Fair standing. You passed with Grade C, but additional practice will boost scores.`;
-  else feedback = `❗ Below the pass threshold. Please consult your instructor for remedial study support.`;
-  document.getElementById('studentFeedbackText').textContent = feedback;
-
-  const ctx = document.getElementById('studentSubjectChart').getContext('2d');
-  if (studentChart) studentChart.destroy();
-
-  studentChart = new Chart(ctx, {
-    type: 'bar',
-    data: {
-      labels: ['Math', 'Science', 'English'],
-      datasets: [{
-        label: 'Your Score',
-        data: [student.math, student.science, student.english],
-        backgroundColor: ['#6366f1', '#38bdf8', '#818cf8'],
-        borderRadius: 6
-      }]
-    },
-    options: { responsive: true, maintainAspectRatio: false, scales: { y: { min: 0, max: 100 } } }
-  });
 }
-
-// ================= PRINCIPAL / OWNER HUB =================
-function renderOwnerHub() {
-  document.getElementById('noticeMessage').value = systemSettings.announcement || '';
-  const toggle = document.getElementById('maintenanceToggle');
-  toggle.checked = systemSettings.maintenanceMode;
-  updateToggleLabel();
-}
-
-function updateToggleLabel() {
-  const lbl = document.getElementById('maintenanceStatusLabel');
-  if (systemSettings.maintenanceMode) {
-    lbl.textContent = 'Maintenance Mode: ACTIVE (Teacher edits locked)';
-    lbl.style.color = '#dc2626';
-  } else {
-    lbl.textContent = 'Maintenance Mode: Disabled (Normal Operation)';
-    lbl.style.color = '#0f172a';
-  }
-}
-
-document.getElementById('announcementForm').addEventListener('submit', (e) => {
-  e.preventDefault();
-  systemSettings.announcement = document.getElementById('noticeMessage').value.trim();
-  saveSettings();
-  alert('Notice broadcasted successfully!');
-});
-
-document.getElementById('clearNoticeBtn').addEventListener('click', () => {
-  systemSettings.announcement = '';
-  document.getElementById('noticeMessage').value = '';
-  saveSettings();
-  alert('Broadcast notice cleared.');
-});
-
-document.getElementById('maintenanceToggle').addEventListener('change', (e) => {
-  systemSettings.maintenanceMode = e.target.checked;
-  saveSettings();
-  updateToggleLabel();
-});
-
-document.getElementById('backupJsonBtn').addEventListener('click', () => {
-  const dataBlob = new Blob([JSON.stringify(studentDB, null, 2)], { type: 'application/json' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(dataBlob);
-  link.download = `edutrack_backup_${Date.now()}.json`;
-  link.click();
-});
-
-document.getElementById('resetDemoBtn').addEventListener('click', () => {
-  if (confirm('Reset all student data to the original default demo data?')) {
-    studentDB = [...INITIAL_RECORDS];
-    saveDB();
-    alert('Database restored to default records.');
-  }
-});
-
-// Boot Setup
-updateBanner();
-showView('AUTH');

@@ -1,301 +1,361 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>EduTrack Multi-Portal Management</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <title>National Academic Examination Portal</title>
+  
+  <!-- PWA Manifest & Theme Color -->
+  <link rel="manifest" href="./manifest.json" />
+  <meta name="theme-color" content="#2563eb" />
+
+  <!-- CDNs -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <link rel="stylesheet" href="./style.css" />
 </head>
 <body>
 
-  <!-- Top Navigation Bar -->
-  <nav class="navbar">
-    <div class="nav-brand">🎓 EduTrack Master Hub</div>
-    <div id="navAuthSection"></div>
-  </nav>
+  <!-- Ambient Glows -->
+  <div class="glow glow-1"></div>
+  <div class="glow glow-2"></div>
 
-  <!-- Live Notice / Maintenance Banner (Shown dynamically) -->
-  <div id="globalBanner" class="global-banner" style="display: none;"></div>
+  <!-- 2D Glowing Blue Aura Butterflies -->
+  <div class="butterfly-2d b1">
+    <svg viewBox="0 0 100 100" class="bf-svg">
+      <path class="wing-2d left" d="M50 50 C20 10, 0 20, 10 55 C15 70, 35 75, 50 55 Z" />
+      <path class="wing-2d right" d="M50 50 C80 10, 100 20, 90 55 C85 70, 65 75, 50 55 Z" />
+      <circle cx="50" cy="53" r="2.5" class="bf-body" />
+    </svg>
+  </div>
 
-  <main class="app-container">
+  <div class="butterfly-2d b2">
+    <svg viewBox="0 0 100 100" class="bf-svg">
+      <path class="wing-2d left" d="M50 50 C20 10, 0 20, 10 55 C15 70, 35 75, 50 55 Z" />
+      <path class="wing-2d right" d="M50 50 C80 10, 100 20, 90 55 C85 70, 65 75, 50 55 Z" />
+      <circle cx="50" cy="53" r="2.5" class="bf-body" />
+    </svg>
+  </div>
 
-    <!-- ================= VIEW 1: AUTHENTICATION / 3-STATION SELECTOR ================= -->
-    <section id="authView" class="view-section">
-      <div class="auth-card-container">
+  <!-- Navbar -->
+  <header class="navbar">
+    <div class="nav-brand">
+      <div class="brand-icon"><i class="fa-solid fa-building-columns"></i></div>
+      <div>
+        <h1>National Academic <span>Portal</span></h1>
+        <p class="subtitle">Student Assessment & Examination Board</p>
+      </div>
+    </div>
+    <div class="nav-actions">
+      <button id="themeToggle" class="btn-theme" title="Toggle Theme"><i class="fa-solid fa-moon"></i></button>
+      <div class="role-badge"><i class="fa-solid fa-circle-check"></i> Session 2026-27</div>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- STUDENT SECTION -->
+    <section id="studentSection" class="view-panel active-panel">
+      
+      <div class="card login-card" id="studentLoginCard">
+        <div class="card-header">
+          <h3><i class="fa-solid fa-address-card"></i> Student Examination Result</h3>
+          <p>Enter your examination roll number and security PIN</p>
+        </div>
+        <div class="form-group">
+          <label>Roll Number (Demo: 101, 102, 103)</label>
+          <input type="number" id="studentRollInput" placeholder="Enter Roll Number" />
+        </div>
+        <div class="form-group">
+          <label>Security PIN (Demo: 1234)</label>
+          <input type="password" id="studentPinInput" placeholder="Enter 4-Digit PIN" />
+        </div>
+        <button class="btn btn-primary" onclick="loginStudent()">
+          <i class="fa-solid fa-magnifying-glass"></i> View Official Marksheet
+        </button>
+      </div>
+
+      <!-- Result Dashboard -->
+      <div id="studentDashboard" style="display: none;">
         
-        <!-- Student Login Card -->
-        <div class="card auth-card">
-          <div class="card-icon">👨‍🎓</div>
-          <h2>Student Portal</h2>
-          <p>View individual report cards, scores, and class feedback.</p>
-          <form id="studentLoginForm">
-            <div class="form-group">
-              <label for="studentLoginId">Roll ID</label>
-              <input type="text" id="studentLoginId" placeholder="e.g. 101" required />
-            </div>
-            <div class="form-group">
-              <label for="studentLoginPin">Access PIN</label>
-              <input type="password" id="studentLoginPin" placeholder="e.g. 1234" required />
-            </div>
-            <button type="submit" class="btn-primary w-full">Sign In as Student</button>
-          </form>
+        <div class="dashboard-actions">
+          <button class="btn btn-secondary" onclick="logoutStudent()">
+            <i class="fa-solid fa-arrow-left"></i> Check Another Result
+          </button>
+          <button class="btn btn-download" onclick="downloadReportCardPDF()">
+            <i class="fa-solid fa-print"></i> Download Official Statement
+          </button>
         </div>
 
-        <!-- Teacher Login Card -->
-        <div class="card auth-card">
-          <div class="card-icon">👩‍🏫</div>
-          <h2>Teacher Station</h2>
-          <p>Add/edit marks, track analytics, and export class records.</p>
-          <form id="adminLoginForm">
-            <div class="form-group">
-              <label for="adminPassword">Teacher Passcode</label>
-              <input type="password" id="adminPassword" placeholder="Passcode (admin123)" required />
-            </div>
-            <button type="submit" class="btn-secondary w-full">Enter Teacher Station</button>
-          </form>
-        </div>
-
-        <!-- Principal / Owner Console Card -->
-        <div class="card auth-card border-accent">
-          <div class="card-icon">⚙️</div>
-          <h2>Principal & System Hub</h2>
-          <p>Post global announcements, toggle maintenance, and manage backups.</p>
-          <form id="ownerLoginForm">
-            <div class="form-group">
-              <label for="ownerPassword">Master Owner Passcode</label>
-              <input type="password" id="ownerPassword" placeholder="Passcode (owner123)" required />
-            </div>
-            <button type="submit" class="btn-owner w-full">Enter Master Hub</button>
-          </form>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- ================= VIEW 2: TEACHER STATION ================= -->
-    <section id="adminView" class="view-section" style="display: none;">
-      <div class="section-header">
-        <div>
-          <h2>Teacher Management Console</h2>
-          <p class="text-muted">Master control for class analytics and student records.</p>
-        </div>
-        <button id="exportCsvBtn" class="btn-outline">📥 Export Class CSV</button>
-      </div>
-
-      <div class="stats-grid">
-        <div class="stat-card">
-          <span class="stat-label">Total Enrolled</span>
-          <h3 id="adminTotalStudents">0</h3>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Class Average</span>
-          <h3 id="adminClassAvg">0.0%</h3>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Pass Percentage</span>
-          <h3 id="adminPassRate">0%</h3>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Highest Score</span>
-          <h3 id="adminTopScorer">-</h3>
-        </div>
-      </div>
-
-      <div class="charts-grid">
-        <div class="card">
-          <h3>Subject-Wise Performance</h3>
-          <div class="canvas-container">
-            <canvas id="adminSubjectChart"></canvas>
-          </div>
-        </div>
-        <div class="card">
-          <h3>Grade Distributions</h3>
-          <div class="canvas-container">
-            <canvas id="adminGradeChart"></canvas>
-          </div>
-        </div>
-      </div>
-
-      <div class="card form-card" id="teacherEntryCard">
-        <h3 id="formModeTitle">Register / Edit Student Record</h3>
-        <form id="studentEntryForm">
-          <input type="hidden" id="editStudentKey" value="-1" />
-          <div class="input-grid">
-            <div class="form-group">
-              <label for="rollId">Roll Number / ID</label>
-              <input type="text" id="rollId" placeholder="e.g. 104" required />
-            </div>
-            <div class="form-group">
-              <label for="studentPin">Secret PIN</label>
-              <input type="text" id="studentPin" placeholder="e.g. 1234" required />
-            </div>
-            <div class="form-group grid-span-2">
-              <label for="studentFullName">Full Name</label>
-              <input type="text" id="studentFullName" placeholder="e.g. David Miller" required />
-            </div>
-            <div class="form-group">
-              <label for="mathMarks">Math (0-100)</label>
-              <input type="number" id="mathMarks" min="0" max="100" required />
-            </div>
-            <div class="form-group">
-              <label for="scienceMarks">Science (0-100)</label>
-              <input type="number" id="scienceMarks" min="0" max="100" required />
-            </div>
-            <div class="form-group">
-              <label for="englishMarks">English (0-100)</label>
-              <input type="number" id="englishMarks" min="0" max="100" required />
+        <div class="metrics-row">
+          <div class="metric-card">
+            <div class="metric-icon blue"><i class="fa-solid fa-user-graduate"></i></div>
+            <div>
+              <p class="metric-title">Candidate Name</p>
+              <h2 id="dispStudentName">-</h2>
             </div>
           </div>
-          <div class="form-actions">
-            <button type="submit" id="saveRecordBtn" class="btn-primary">Save Student</button>
-            <button type="button" id="cancelFormEditBtn" class="btn-muted" style="display: none;">Cancel</button>
+          <div class="metric-card">
+            <div class="metric-icon purple"><i class="fa-solid fa-calculator"></i></div>
+            <div>
+              <p class="metric-title">Aggregate Total</p>
+              <h2 id="dispStudentTotal">-</h2>
+            </div>
           </div>
-        </form>
-      </div>
-
-      <div class="card">
-        <div class="table-tools">
-          <h3>Class Directory</h3>
-          <input type="text" id="adminTableSearch" placeholder="🔍 Search name or Roll ID..." />
+          <div class="metric-card">
+            <div class="metric-icon emerald"><i class="fa-solid fa-award"></i></div>
+            <div>
+              <p class="metric-title">Result / Division</p>
+              <h2 id="dispStudentGrade">-</h2>
+            </div>
+          </div>
         </div>
-        <div class="table-wrapper">
-          <table>
+
+        <div class="charts-grid">
+          <div class="card">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-chart-column"></i> Subject-Wise Score Breakdown</h3>
+            </div>
+            <div class="chart-container">
+              <canvas id="studentChart"></canvas>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h3><i class="fa-solid fa-chart-line"></i> Performance Comparison (vs Class Average)</h3>
+            </div>
+            <div class="chart-container">
+              <canvas id="studentRadarChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- PDF Marksheet Template -->
+        <div id="reportCardTemplate" class="report-card-pdf">
+          <div class="pdf-header">
+            <div>
+              <h2 class="pdf-title">STATE SECONDARY & HIGHER EDUCATION BOARD</h2>
+              <p class="pdf-sub">ANNUAL ACADEMIC EXAMINATION STATEMENT (2026-27)</p>
+            </div>
+            <div class="pdf-badge">GOVT. APPROVED</div>
+          </div>
+          <hr class="pdf-divider" />
+          
+          <div class="pdf-info-grid">
+            <p><strong>Candidate's Name:</strong> <span id="pdfName">-</span></p>
+            <p><strong>Roll Number:</strong> <span id="pdfRoll">-</span></p>
+            <p><strong>Course / Stream:</strong> General Academic Examination</p>
+            <p><strong>Result Status:</strong> <span class="status-pass" id="pdfStatus">PASSED</span></p>
+          </div>
+
+          <table class="pdf-table">
             <thead>
               <tr>
-                <th>Roll ID</th>
-                <th>Name</th>
-                <th>PIN</th>
-                <th>Math</th>
-                <th>Science</th>
-                <th>English</th>
-                <th>Total</th>
-                <th>Average</th>
-                <th>Grade</th>
-                <th>Actions</th>
+                <th>Code</th>
+                <th>Subject Name</th>
+                <th>Theory (/80)</th>
+                <th>Internal (/20)</th>
+                <th>Total (/100)</th>
+                <th>Grading</th>
               </tr>
             </thead>
-            <tbody id="adminTableBody"></tbody>
+            <tbody id="pdfTableBody"></tbody>
+            <tfoot>
+              <tr class="pdf-total-row">
+                <td colspan="4"><strong>Grand Aggregate Total (Out of 500)</strong></td>
+                <td id="pdfTotalScore"><strong>-</strong></td>
+                <td id="pdfFinalDivision"><strong>-</strong></td>
+              </tr>
+            </tfoot>
           </table>
+
+          <div class="pdf-footer">
+            <div>
+              <p>Dated: August 18, 2026</p>
+              <p style="font-size: 0.75rem; color: #64748b;">System-generated authenticated digital document.</p>
+            </div>
+            <div class="pdf-seal">CONTROLLER OF EXAMINATIONS</div>
+          </div>
         </div>
+
       </div>
+
     </section>
 
-    <!-- ================= VIEW 3: STUDENT DASHBOARD ================= -->
-    <section id="studentView" class="view-section" style="display: none;">
-      <div class="section-header">
-        <div>
-          <h2>Welcome back, <span id="portalStudentName">Student</span>!</h2>
-          <p class="text-muted">Student ID: #<span id="portalRollId">-</span></p>
+    <!-- FACULTY DESK SECTION -->
+    <section id="teacherSection" class="view-panel" style="display: none;">
+      
+      <div class="card login-card" id="teacherLoginCard">
+        <div class="card-header">
+          <h3><i class="fa-solid fa-lock"></i> Faculty Authorization</h3>
+          <p>Restricted Area: Enter Master Administrative Passcode</p>
         </div>
+        <div class="form-group">
+          <label>Passcode (Demo: admin123)</label>
+          <input type="password" id="teacherPassInput" placeholder="Enter passcode" />
+        </div>
+        <button class="btn btn-primary" onclick="loginTeacher()">
+          <i class="fa-solid fa-unlock-keyhole"></i> Enter Faculty Desk
+        </button>
+        <button class="btn btn-secondary" style="width: 100%; margin-top: 0.75rem;" onclick="closeFacultyDesk()">
+          <i class="fa-solid fa-xmark"></i> Back to Student Portal
+        </button>
       </div>
 
-      <div class="stats-grid">
-        <div class="stat-card">
-          <span class="stat-label">Total Score</span>
-          <h3 id="portalTotalMarks">0 / 300</h3>
+      <div id="teacherDashboard" style="display: none;">
+        
+        <!-- Statistics Summary Cards -->
+        <div class="metrics-row">
+          <div class="metric-card">
+            <div class="metric-icon blue"><i class="fa-solid fa-users"></i></div>
+            <div>
+              <p class="metric-title">Total Candidates</p>
+              <h2 id="facultyTotalCount">0</h2>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon purple"><i class="fa-solid fa-chart-simple"></i></div>
+            <div>
+              <p class="metric-title">Class Average Score</p>
+              <h2 id="facultyClassAvg">0%</h2>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon emerald"><i class="fa-solid fa-trophy"></i></div>
+            <div>
+              <p class="metric-title">Highest Scorer</p>
+              <h2 id="facultyTopScore">-</h2>
+            </div>
+          </div>
         </div>
-        <div class="stat-card">
-          <span class="stat-label">Aggregate Percentage</span>
-          <h3 id="portalAverage">0.0%</h3>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Assigned Grade</span>
-          <h3 id="portalGrade">-</h3>
-        </div>
-        <div class="stat-card">
-          <span class="stat-label">Result Status</span>
-          <h3 id="portalStatus">-</h3>
-        </div>
-      </div>
 
-      <div class="charts-grid">
+        <!-- Add / Edit Student Record Card -->
+        <div class="card" id="formCard">
+          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; text-align: left;">
+            <div>
+              <h3 id="formTitle"><i class="fa-solid fa-user-plus"></i> Register Student Marks Entry</h3>
+              <p id="formSub">Add a new student candidate record</p>
+            </div>
+            <button id="cancelEditBtn" class="btn btn-secondary" style="display: none; width: auto;" onclick="cancelEditMode()">
+              Cancel Edit
+            </button>
+          </div>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Candidate Name</label>
+              <input type="text" id="newStudentName" placeholder="Full name" />
+            </div>
+            <div class="form-group">
+              <label>Roll Number</label>
+              <input type="number" id="newStudentRoll" placeholder="Roll No." />
+            </div>
+            <div class="form-group">
+              <label>Security PIN</label>
+              <input type="password" id="newStudentPin" placeholder="4-digit PIN" />
+            </div>
+            <div class="form-group">
+              <label>General English (/100)</label>
+              <input type="number" id="newEnglish" placeholder="Marks" />
+            </div>
+            <div class="form-group">
+              <label>Regional / Language (/100)</label>
+              <input type="number" id="newLanguage" placeholder="Marks" />
+            </div>
+            <div class="form-group">
+              <label>Mathematics (/100)</label>
+              <input type="number" id="newMath" placeholder="Marks" />
+            </div>
+            <div class="form-group">
+              <label>Science / Computer (/100)</label>
+              <input type="number" id="newScience" placeholder="Marks" />
+            </div>
+            <div class="form-group">
+              <label>Social Studies / EVS (/100)</label>
+              <input type="number" id="newSocial" placeholder="Marks" />
+            </div>
+          </div>
+          <button class="btn btn-primary" id="submitRecordBtn" onclick="saveStudentRecord()">
+            <i class="fa-solid fa-cloud-arrow-up"></i> Upload Mark Record
+          </button>
+        </div>
+
+        <!-- Class Roster with Export, Search, Filters & Actions -->
         <div class="card">
-          <h3>Your Subject Breakdown</h3>
-          <div class="canvas-container">
-            <canvas id="studentSubjectChart"></canvas>
+          <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; text-align: left; flex-wrap: wrap; gap: 0.75rem;">
+            <h3><i class="fa-solid fa-table-list"></i> Examination Register</h3>
+            <button class="btn btn-excel" onclick="exportMarksToCSV()">
+              <i class="fa-solid fa-file-excel"></i> Export to Excel (CSV)
+            </button>
           </div>
-        </div>
-        <div class="card">
-          <h3>Academic Feedback & Breakdown</h3>
-          <div class="student-breakdown-box">
-            <div class="score-row">
-              <span>Mathematics:</span>
-              <strong id="cardMath">-</strong>
+          
+          <div class="roster-toolbar">
+            <div class="search-box">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="rosterSearchInput" placeholder="Search by name or roll number..." oninput="filterTeacherTable()" />
             </div>
-            <div class="score-row">
-              <span>Science:</span>
-              <strong id="cardSci">-</strong>
+            <div class="filter-pills">
+              <button class="pill active" onclick="setStatusFilter('all', this)">All</button>
+              <button class="pill" onclick="setStatusFilter('distinction', this)">Distinction (≥75%)</button>
+              <button class="pill" onclick="setStatusFilter('first', this)">1st Div (≥60%)</button>
+              <button class="pill" onclick="setStatusFilter('repeat', this)">Compartment (&lt;33%)</button>
             </div>
-            <div class="score-row">
-              <span>English:</span>
-              <strong id="cardEng">-</strong>
-            </div>
-            <hr class="divider" />
-            <p id="studentFeedbackText" class="feedback-box"></p>
+          </div>
+
+          <div class="table-wrapper">
+            <table class="styled-table">
+              <thead>
+                <tr>
+                  <th>Roll No</th>
+                  <th>Candidate Name</th>
+                  <th>English</th>
+                  <th>Language</th>
+                  <th>Maths</th>
+                  <th>Science</th>
+                  <th>Social</th>
+                  <th>Aggregate</th>
+                  <th>Division</th>
+                  <th style="text-align: center;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="teacherTableBody"></tbody>
+            </table>
           </div>
         </div>
-      </div>
-    </section>
 
-    <!-- ================= VIEW 4: PRINCIPAL & SYSTEM HUB ================= -->
-    <section id="ownerView" class="view-section" style="display: none;">
-      <div class="section-header">
-        <div>
-          <h2>Principal & System Management</h2>
-          <p class="text-muted">Broadcast live notices, control edit access, and manage data.</p>
-        </div>
+        <button class="btn btn-secondary" onclick="closeFacultyDesk()">
+          <i class="fa-solid fa-arrow-left"></i> Exit Faculty Desk
+        </button>
       </div>
 
-      <!-- Broadcast Center -->
-      <div class="card">
-        <h3>📢 Live Notice Broadcast Center</h3>
-        <p class="text-muted" style="margin-bottom: 1rem; font-size: 0.9rem;">
-          Publish notices (e.g., Exam dates, Fee deadlines, Holiday alerts) that appear across student and teacher portals.
-        </p>
-        <form id="announcementForm">
-          <div class="form-group">
-            <label for="noticeMessage">Notice Message</label>
-            <input type="text" id="noticeMessage" placeholder="e.g. Mid-term examination schedule will be published on Monday." required />
-          </div>
-          <div class="form-actions">
-            <button type="submit" class="btn-owner">Publish Notice</button>
-            <button type="button" id="clearNoticeBtn" class="btn-outline">Clear Current Notice</button>
-          </div>
-        </form>
-      </div>
-
-      <!-- Maintenance & Safety Switch -->
-      <div class="card">
-        <h3>🛠️ Maintenance Mode & Data Protection</h3>
-        <p class="text-muted" style="margin-bottom: 1rem; font-size: 0.9rem;">
-          Enable Maintenance Mode when updating marks or curricula so teachers cannot accidentally edit or overwrite data simultaneously.
-        </p>
-        <div class="toggle-container">
-          <label class="switch">
-            <input type="checkbox" id="maintenanceToggle" />
-            <span class="slider round"></span>
-          </label>
-          <span id="maintenanceStatusLabel" style="font-weight: 600;">Maintenance Mode: Disabled (Normal Operation)</span>
-        </div>
-      </div>
-
-      <!-- Backup & Restore -->
-      <div class="card">
-        <h3>💾 System Backup & Data Reset</h3>
-        <p class="text-muted" style="margin-bottom: 1rem; font-size: 0.9rem;">Download full database snapshot or restore sample test data.</p>
-        <div class="form-actions">
-          <button id="backupJsonBtn" class="btn-outline">📥 Download JSON Backup</button>
-          <button id="resetDemoBtn" class="btn-sm-del" style="padding: 0.65rem 1.25rem;">⚠️ Reset to Default Demo Data</button>
-        </div>
-      </div>
     </section>
 
   </main>
 
-  <script src="app.js"></script>
+  <footer style="text-align: center; margin-top: 3rem; padding-bottom: 2rem; font-size: 0.75rem; color: var(--text-secondary);">
+    <p>© 2026 Academic Assessment Board. All rights reserved.</p>
+    <a href="javascript:void(0)" onclick="openFacultyDesk()" style="color: var(--text-secondary); text-decoration: none; opacity: 0.5; margin-top: 0.5rem; display: inline-block;">
+      <i class="fa-solid fa-key"></i> Staff Login
+    </a>
+  </footer>
+
+  <script src="./app.js"></script>
+
+  <!-- Service Worker Registration -->
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./sw.js")
+          .then(() => console.log("PWA Service Worker Registered Successfully!"))
+          .catch((err) => console.log("Service Worker Registration Failed:", err));
+      });
+    }
+  </script>
 </body>
 </html>
